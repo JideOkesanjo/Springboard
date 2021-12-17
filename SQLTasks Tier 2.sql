@@ -141,21 +141,35 @@ QUESTIONS:
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
 
-SELECT name AS Facility, (monthlymaintenance - (b.slots * f.guestcost + b.slots * f.membercost)) AS total_revenue
+SELECT name AS Facility, (((b.slots * f.guestcost) + (b.slots * f.membercost))) AS total_revenue
 FROM Bookings AS b
 JOIN Facilities AS f
 USING (facid)
 JOIN Members AS m 
 USING (memid)
-WHERE (monthlymaintenance - (b.slots * f.guestcost + b.slots * f.membercost)) < 1000
+WHERE ((b.slots * f.guestcost + b.slots * f.membercost)) < 1000
 GROUP BY 1
 ORDER BY 2 DESC;
 
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
-
-
+SELECT firstname, surname, recommendedby
+FROM Members
+WHERE recommendedby != 0
+ORDER BY surname, firstname;
 /* Q12: Find the facilities with their usage by member, but not guests */
-
-
+SELECT firstname, surname, name AS facility
+FROM Bookings AS b
+INNER JOIN Facilities as f
+USING(facid)
+INNER JOIN Members AS m
+USING(memid)
+WHERE firstname NOT LIKE 'GUEST' AND surname NOT LIKE 'GUEST'
+ORDER BY surname, firstname;
 /* Q13: Find the facilities usage by month, but not guests */
-
+SELECT  name AS facility, MONTH(starttime) AS Month
+FROM Bookings AS b
+INNER JOIN Facilities as f
+USING(facid)
+INNER JOIN Members AS m
+USING(memid)
+WHERE firstname NOT LIKE 'GUEST' AND surname NOT LIKE 'GUEST';
