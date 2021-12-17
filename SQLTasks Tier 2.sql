@@ -104,27 +104,32 @@ different costs to members (the listed costs are per half-hour 'slot'), and
 the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
-SELECT CONCAT(m.firstname, ' ', m.surname) AS member,
-	CASE WHEN m.memid = 0 THEN f.guestcost * b.slots ELSE f.membercost * b.slots END AS cost_per_slot 
-FROM Members as m
-	INNER JOIN Bookings as b
-ON m.memid = b.memid
-	INNER JOIN Facilities as f
+SELECT CONCAT(m.firstname, ' ', m.surname) AS member, name AS facility, CASE WHEN b.memid != 0 THEN b.slots * f.membercost
+                                                    ELSE b.slots * f.guestcost END AS cost_per_person
+FROM Bookings as b
+INNER JOIN Facilities as f
 ON b.facid = f.facid
-WHERE DATE(starttime) = '2012-09-14' AND CASE WHEN m.memid = 0 THEN f.guestcost * b.slots ELSE f.membercost * b.slots END > 30
-ORDER BY cost_per_slot DESC;
+INNER JOIN Members as m
+ON b.memid = m.memid
+WHERE starttime LIKE '%2012-09-14%' AND CASE WHEN b.memid != 0 THEN b.slots * f.membercost ELSE b.slots * f.guestcost END > 30
+ORDER BY cost_per_person DESC;
 
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
-SELECT CONCAT(m.firstname, ' ', m.surname) AS member,
-	CASE WHEN m.memid = 0 THEN f.guestcost * b.slots ELSE f.membercost * b.slots > 30 END AS cost_per_slot 
-FROM Members as m
-	INNER JOIN Bookings as b
-ON m.memid = b.memid
-	INNER JOIN Facilities as f
-ON b.facid = f.facid
-WHERE DATE(starttime) = '2012-09-14'
-ORDER BY cost_per_slot DESC;
+SELECT *
+FROM (SELECT m.firstname, m.surname, f.name,
+    CASE WHEN memid =0
+    THEN b.slots * f.guestcost
+    ELSE b.slots * f.membercost
+    END AS cost
+    FROM Bookings AS b
+    INNER JOIN Facilities AS f
+    USING ( facid )
+    INNER JOIN Members AS m
+    USING ( memid )
+    WHERE starttime LIKE '%2012-09-14%') AS sub
+WHERE cost >30
+ORDER BY cost DESC;
 
 /* PART 2: SQLite
 
@@ -135,6 +140,16 @@ QUESTIONS:
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+
+SELECT name AS Facility, (monthlymaintenance - (b.slots * f.guestcost + b.slots * f.membercost)) AS total_revenue
+FROM Bookings AS b
+JOIN Facilities AS f
+USING (facid)
+JOIN Members AS m 
+USING (memid)
+WHERE (monthlymaintenance - (b.slots * f.guestcost + b.slots * f.membercost)) < 1000
+GROUP BY 1
+ORDER BY 2 DESC;
 
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
 
